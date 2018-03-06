@@ -1,1 +1,3 @@
-# agrrenium_training_2018
+# Agreenium training
+## Date: March 2018
+
