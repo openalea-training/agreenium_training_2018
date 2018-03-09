@@ -30,6 +30,7 @@ Introduction to FSPMs and to the methodology:
 ## Tuesday PM 
 
 TP at INRA Mauguio (UE DiaScope) Departure 13h - Return 18h (4h)
+
 **Data acquisition**: LIDAR, Digit, Topology
 
 In parallel:
@@ -49,7 +50,7 @@ In parallel:
 ## Wednesday PM 
 
 * 13h30 - 16h: Analysis of plant architecture (Christophe Pradal, Benoit Pallas)
-* 17h-18h Conf « Eco-Physiology in FSPM » (Pr. Ted DeJong, UC Davis in visio-conference)
+* 17h-18h Conf « Eco-Physiology in FSPM » (Benoît Pallas)
 
 ## Tuesday AM
 
@@ -59,14 +60,24 @@ In parallel:
 
 ## Tuesday PM
 
-* 13h30 - 16h00 : Introduction to light models, RUE (Radiation Use Efficiency) and photosynthesis
-  - TP (Caribu, RATP) (Christophe Pradal, Christian Fournier, Raphaël Perez, Gaëtan Louarn)
+* 13h30 - 15h00 : 
+  - Introduction to light models, RUE (Radiation Use Efficiency) and photosynthesis
+  - Model integration in the OpenAlea platform (Christophe Pradal, Christian Fournier, Raphaël Perez)
   
-* 16h30 - 17h30 : Conference « Utilisation des FSPM pour l’analyse du fonctionnement d’agrosystèmes pluri-spécifiques » (Gaetan Louarn)
+* 15h00 - 16h30
+  - Light interception on 3D models (Christophe Pradal, Christian Fournier, Raphaël Perez, Gaëtan Louarn)
+  
+* 17h - 18h : Conference « Using FSPMs  to analyse the functionning of pluri-spécific agrosystems  » (Gaetan Louarn)
 
 ## Friday AM
 
 * 8h30 - 9h30 : Sensitivity Analysis methods (Robert. Faivre)
+* 10h30 - 12h30 : Computing sensitivity analysis on plant models (Christophe Pradal, Christian Fournier, Raphaël Perez)
 
+## Friday PM
+
+* 13h30 - 14h30: Analysing the results of sensitivity analsysis (Christophe Pradal, Christian Fournier, Raphaël Perez)
+* 14h30 - 15h30: Conference « Utilisation couplée de la modélisation structure fonction pour déterminer des idéotypes de palmier pour l’interception du rayonnement et l’assimilation carbonée » (Raphaël Pérez)
+* 15h - 16h30 : Conclusion & feedback
 
 
