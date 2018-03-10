@@ -1,0 +1,47 @@
+BA	BF	PC	PL	VC	VL		! Entity	Annee 2007	Gotheron	Melrouge	
+0	0	1.3327	0.6666	1.3327	0.3716		! slope Number of Leaves=f(Length)				BA: NL = 6.8
+6.8	6.8	5.4	2.27	5.4	9.49		! intercept Number of Leaves=f(Length)				BA: SLA = 71
+0	0	19.187	6.2231	19.187	8.2297		! slope Shoot leaf area=f(Length)				
+71	71	65	74	65	99.5		! intercept Shoot leaf area=f(Length)				PC et VC: NL = 1.3327 SL + 5.4   r?=0.51
+93.1	93.1	71.3	52.2	73.1	45.6		! Mean slope petiole angle				PC et VC : SLA = 19.187 SL + 65      r?=0.22
+30.9	30.9	36.5	26	37.3	21		! Std-deviation petiole angle				
+0.5218	0.5218	0.2597	0.1632	0.3009	0.2041		! slope petiole length=f(Leaf length)				PL: NL = 0.6666 SL + 2.27  r?=0.804
+-0.201	-0.201	0.9338	1.5096	0.5961	1.3438		! intercept petiole length=f(Leaf length)				PL:SLA = 6.2231 SL + 74    r?=0.766
+0.4738	0.4738	0.3332	0.3468	0.3332	0.3318		! slope Leaf area = f(Midrib length?)				
+0.6366	0.6366	0.4776	0.4683	0.4776	0.4734		! slope Leaf width =f(Leaf length)				VL: NL = 0.3716 SL + 9.49       r?=0.83
+5.8	5.8	1.3	3.3	1.3	0	!	%Leaf area	1.090909091	ROULIS	(RotX)	VL: SLA = 8.2297 SL + 99.5       r?=0.58
+4.6	4.6	5.4	0	5.4	0	!	%Leaf area	1.1	Limbe / nervure		
+2.3	2.3	1	2.3	1	0	!	%Leaf area	1.111111111			BA: LA = 0.6366 LL LW     r?=0.5114
+3.8	3.8	2.3	6.7	2.3	2.5	!	%Leaf area	1.125			PC: 1 seule pousse, donc idem VC
+5.4	5.4	1.2	4.5	1.2	1.3	!	%Leaf area	1.142857143			PL: LA = 0.4683 LL LW     r?=0.7164
+3.6	3.6	9.4	7.1	9.4	1.1	!	%Leaf area	1.166666667			VC: LA = 0.4776 LL LW     r?=0.5904
+2.8	2.8	3.6	5.2	3.6	6.3	!	%Leaf area	1.2			VL: LA = 0.4734 LL LW     r?=0.6344
+0	0	3.5	5.7	3.5	3.2	!	%Leaf area	1.25			
+7.4	7.4	4	7.5	4	4.3	!	%Leaf area	1.333333333			ALLOM  LA = f(LL LW)
+0	0	6.9	7.4	6.9	14.7	!	%Leaf area	1.5			BA: LA = 0.4738 LL?     r?=0.8576
+3.7	3.7	6.4	6.5	6.4	9.5	!	%Leaf area	2			PC: idem VC car une seule pousse
+1.4	1.4	10.9	0	10.9	5.3	!	%Leaf area	#DIV/0!			PL: LA = 0.3468 LL?     r?=0.8770
+2.5	2.5	7.6	4.4	7.6	14.6	!	%Leaf area	0 / 15			VC: LA = 0.3332 LL?     r?=0.8988
+1	1	2	3.3	2	9.6	!	%Leaf area	15 / 30			VL: LA = 0.3318 LL?     r?=0.9329
+1.8	1.8	9.2	7.2	9.2	7.2	!	%Leaf area	30 / 45			
+1.9	1.9	4.6	4.6	4.6	11.2	!	%Leaf area	45 / 60			ALLOM  LW = f(LL)
+18.7	18.7	0.5	2.5	0.5	1.7	!	%Leaf area	60 / 75			BA: LA = 0.6366 LL LW     r?=0.5114
+4.7	4.7	5.7	4	5.7	2.2	!	%Leaf area	75 / 90			PC: 1 seule pousse, donc idem VC
+7.4	7.4	0.9	0	0.9	1.6	!	%Leaf area	90 / 105			PL: LA = 0.4683 LL LW     r?=0.7164
+1.1	1.1	3.2	4.2	3.2	1	!	%Leaf area	105 / 120			VC: LA = 0.4776 LL LW     r?=0.5904
+6.2	6.2	6.3	3.1	6.3	1.7	!	%Leaf area	120 / 135			VL: LA = 0.4734 LL LW     r?=0.6344
+4.3	4.3	1.7	8	1.7	0	!	%Leaf area	135 / 150		
+4.5	4.5	2.4	1.5	2.4	1	!	%Leaf area	150 / 165		
+5.1	5.1	0	1	0	0	!	%Leaf area	165 / 180		
+0	0	0.8	0	0.8	0	!	%Leaf area	1.2	ELEVATION	(RotY)
+0	0	5.4	1.6	5.4	0	!	%Leaf area	1.25	Nervure	
+0	0	1.6	6.6	1.6	1.1	!	%Leaf area	1.333333333		
+3.2	3.2	5.5	4.9	5.5	4.5	!	%Leaf area	1.5		
+4	4	12.2	15.5	12.2	7.4	!	%Leaf area	2		
+20.7	20.7	12	19.1	12	12.3	!	%Leaf area	#DIV/0!		
+16	16	18.9	17.3	18.9	12.7	!	%Leaf area	0 / 15		
+24.8	24.8	9.5	14.8	9.5	22.5	!	%Leaf area	15 / 30		
+15.7	15.7	13.2	5.8	13.2	17.7	!	%Leaf area	30 / 45		
+7.4	7.4	10.3	7.2	10.3	13.1	!	%Leaf area	45 / 60		
+1.8	1.8	8.5	4	8.5	8.7	!	%Leaf area	60 / 75		
+6.4	6.4	2.1	3.2	2.1	0	!	%Leaf area	75 / 90		
