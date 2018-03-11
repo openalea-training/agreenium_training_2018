@@ -21,9 +21,9 @@ Activate the *openalea* environment:
 
 Install the different packages
 
-    conda install -c openalea openalea.mtg alinea.caribu plantscan3d openalea.visualea
+    conda install -c openalea openalea.mtg alinea.caribu openalea.plantscan3d openalea.visualea notebook matplotlib pandas
 
-    conda install -c openalea -c conda-forge python-pvlib alinea.astk
+    conda install -c openalea -c conda-forge pvlib-python alinea.astk
 
 ## Installation of R & co
 
