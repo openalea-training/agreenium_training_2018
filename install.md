@@ -49,7 +49,8 @@ With **conda**:
 * lhs
 * planor
 
-Under **R**, you can install everything using
+Under **R**, you can install everything using:
+    
     install.packages(c('PerformanceAnalytics','agricolae','sensitivity','lhs','planor') )
 
 
