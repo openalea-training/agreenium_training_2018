@@ -27,12 +27,18 @@ Install the different packages
 
 ## Installation of R & co
 
-You can install everythong by yourself, or use the r channel in conda
+You can install everything by yourself, or using the r channel in conda.
+
+With **conda**:
 
 ### Install RStudio, Rmarkdown
 
-[source] deactivate
-conda create -n renv -c r rstudio r-rmarkdown
+
+    [source] deactivate
+    conda create -n renv -c r rstudio r-rmarkdown r-car r-lme4
+    
+    [source] activate renv
+    
 
 ### Install R packages
 * PerformanceAnalytics
@@ -44,6 +50,6 @@ conda create -n renv -c r rstudio r-rmarkdown
 * planor
 
 Under **R**, you can install everything using
-  install.packages(c('PerformanceAnalytics','lme4','car','agricolae','sensitivity','lhs','planor') )
+    install.packages(c('PerformanceAnalytics','agricolae','sensitivity','lhs','planor') )
 
 
