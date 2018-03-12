@@ -7,7 +7,9 @@
 [Conda](https://conda.io) is a package manager that can be installed on Linux, Windows, and Mac.
 If you have not yet installed conda on your computer, follow these instructions:
 
-[Conda Installation](https://conda.io/docs/user-guide/install/index.html)
+[Conda Installation](https://conda.io/docs/user-guide/install/index.html). Follow instructions for Miniconda.
+
+[Conda Download](https://conda.io/miniconda.html). Use the Python 2.7 based installation.
 
 #### Windows, Linux, Mac
 
