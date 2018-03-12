@@ -1,5 +1,6 @@
+import notebook_util as nu ; reload(nu)
 from notebook_util import notebook
-exec(notebook('Apple Tree Simulation.ipynb'))
+exec(notebook('Apple Tree Simulation - Organs.ipynb'))
 
 from math import *
 
@@ -25,7 +26,7 @@ module Internode
 
 Axiom: Internode(ParameterSet(length=0.01, finallength = internode_length(rank = 1), width=0.01, ttime = 0)) [&(60) Leaf(ParameterSet(area=0, finalarea = leaf_area(rank = 1), width=0.1, ttime = 0)) ]
 
-derivation length: 200
+derivation length: 100
 production:
 
 Internode(p) :

@@ -4,7 +4,8 @@ def pnotebook(fname):
   nb = read(fname, NO_CONVERT)  
   source = ''
   for cell in nb['cells']:
-    if cell['cell_type'] == 'code' and (not cell['metadata'].has_key('example') or not cell['metadata']['example']):
+    print cell['metadata']
+    if cell['cell_type'] == 'code' and (not cell['metadata'].has_key('tags') or not ('example' in cell['metadata']['tags'])):
       source += cell['source']+'\n'
   return source
 
