@@ -1,0 +1,123 @@
+from notebook_util import notebook
+exec(notebook('Apple Tree Simulation.ipynb'))
+
+from math import *
+
+cdate = None
+def initcdate():
+  global cdate
+  cdate = meteo.get_first_day_for_temperature()+timedelta(days=120)
+
+initcdate()
+
+def Start():
+  initcdate()
+
+
+def StartEach():
+  global cdate
+  cdate += timedelta(days=1)
+
+module Meristem
+module Leaf
+module Internode
+module SimuInfo
+
+def init_meristem(gutype, parentdate = None):
+  if parentdate is None:
+    init_date = date(cdate.year, 4, 1)
+  elif gutype in  [SyllepticShort, SyllepticMedium, SyllepticLong]:
+    init_date = cdate
+    gutype -= 4 # SyllepticLong become Long, etc.
+  else:
+    init_date = date(parentdate.year+1, 4, 1)
+  assert gutype in [ShortGU, MediumGU, LongGU, Inflo, TrunkGU]
+  nbmetamer = growth_unit_length(gutype)
+  p = ParameterSet(gutype = gutype,
+                   mp = MetamerProduction(metamerprodrate, nbmetamer),
+                   init_date = init_date)
+  return p
+
+Axiom:
+  nproduce @Tp(0,0,-1) @Ts(0.005) Meristem(init_meristem(TrunkGU))
+  produce SimuInfo
+
+derivation length: 1200
+production:
+
+Meristem(p):
+  if p.init_date <= cdate:
+    previousnbmetamer = p.mp.nbmetamer
+    nbnewmetamer = p.mp.accumulate(cdate)
+    for i in xrange(nbnewmetamer):
+      rank =  previousnbmetamer+i
+      normalizedrank = rank / p.mp.nbfinalmetamer
+      nproduce Internode(ParameterSet(length=0.01, finallength = internode_length(rank = rank), width=0.01, ttime = 0))
+      nproduce   [ /(144*rank) &(60) Leaf(ParameterSet(area=0, finalarea = leaf_area(rank = 1), width=0.1, ttime = 0)) ]
+      ramiftype = branching(p.gutype, normalizedrank)
+      #if p.gutype == TrunkGU:
+      #  print TypeNames[ramiftype]
+      if ramiftype != Blind:
+        nproduce [ &(30) Meristem(init_meristem(ramiftype, p.init_date)) ]
+    
+    if p.mp.nbmetamer < p.mp.nbfinalmetamer:
+      nproduce Meristem(p)
+    else:
+      # succession
+      produce Meristem(init_meristem(succession(p.gutype), p.init_date))
+          
+  
+
+Internode(p) :
+  cttime = mthermaltime.get_effective_temperature(cdate)
+  p.ttime += cttime
+  
+  p.length += growth_rate(p.ttime, p.finallength, tip_internode, b_internode)*cttime
+  p.width += growth_rate(p.ttime, InternodeRadius, tip_internode, b_internode)*cttime
+  
+  produce Internode(p)
+
+Leaf(p):
+  cttime = mthermaltime.get_effective_temperature(cdate)
+  p.ttime += cttime
+  
+  p.area += growth_rate(p.ttime, p.finalarea, tip_leaf, b_leaf)*cttime
+  
+  produce Leaf(p)
+
+interpretation:
+
+Internode(p) --> _(p.width) F(p.length)
+
+Leaf(p) :
+  if p.area > 0:
+    width = sqrt(p.area / 1.4)
+    length = 2 * width
+    produce ,(10)  SetContour(leafsection) TextureVScale(1./length) _(width/2) F(length)
+
+SimuInfo:
+  produce [@2D @M(0.8,0.8) @L(str(cdate))]
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	PGL_140198936196256 = pgl.ImageTexture("PGL_140198936196256" , "./apple-leaf.png" , )
+	PGL_140198936196256.name = "PGL_140198936196256"
+	Color_10 = pgl.Texture2D(image = PGL_140198936196256 , )
+	Color_10.name = "Color_10"
+	context.turtle.setMaterial(10,Color_10)
+	import openalea.plantgl.all as pgl
+	leafsection = pgl.Polyline2D(	
+	    pgl.Point2Array([(-1.01037, 0.524751),(-0.0030303, -0.00517379),(1.01037, 0.503186)]) , 
+	    )
+	leafsection.name = "leafsection"
+	panel_0 = ({'active': True, 'visible': True, 'name': 'Panel 1'},[('Curve2D',leafsection)])
+	parameterset = [panel_0,]
+	context["__functions__"] = []
+	context["__curves__"] = [('leafsection',leafsection),]
+	context["__parameterset__"] = parameterset
+	context["leafsection"] = leafsection
