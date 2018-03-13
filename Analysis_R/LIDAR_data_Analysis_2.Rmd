@@ -1,0 +1,143 @@
+---
+title: "Analyse_data_LIDAR"
+author: "F.Boudon & B.Pallas  "
+date: "March 2018"
+colorlinks: true
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: TRUE
+---
+
+# Overview
+```{r,  results='hide', message=FALSE, warning=FALSE}
+library(PerformanceAnalytics)
+library(lme4)
+library(car)
+library(FactoMineR)
+library(rgl)
+library('fBasics')
+library(rglwidget)
+library(agricolae)
+library(minpack.lm)
+library(matrixStats)
+```
+
+
+## data visualization
+```{r}
+setwd("D:/Benoit/2018/agreenium_training_2018/data")
+data_lidar = read.csv("data_lidar.csv", header=T, sep=";")
+str(data_lidar)
+```
+
+Definition of variables and units: </li>
+<li> volume : volume of the convex hull  </li> 
+<li> diameter : projected diameter on the soil of the tree canopy (m) </li>
+<li> height : height of the trees (m) </li>
+<li> estimated_leaf_area : estimated leaf area of the tree (m²) </li>
+<li> STAR : silhouette to leaf area ratio (m²/m²) </li>
+<li> max_excentricity : maximal normalized (depending on tree size) excentricity  </li>
+
+
+##Experimental layout
+```{r}
+color = vector(mode="character", length=dim(data_lidar)[1])
+color[data_lidar$treatment == "WD"] = "red"
+color[data_lidar$treatment == "WW"] = "blue"
+plot(data_lidar$col,data_lidar$row, ylim=c(0,120), col=color, main="Experimental_field", xlab="rank",ylab="line")
+legend("topleft", legend = c("WS","WW"),text.col = c("red","blue") , cex = 0.8, bty = "n")
+```
+
+# Exploratory data analysis 
+## Basic statistics
+```{r}
+general_statistics=as.data.frame(matrix(nrow=6, ncol=4))
+colnames(general_statistics) = c("variable","mean","sd","Cv")
+general_statistics["variable"] = colnames(data_lidar[,c(5: (dim(data_lidar)[2]))])
+general_statistics["mean"] =  round(colMeans(data_lidar[,c(5: (dim(data_lidar)[2]))]),2)
+general_statistics["sd"] = round(colSds(as.matrix(data_lidar[,c(5: (dim(data_lidar)[2]))]), na.rm=TRUE),2)
+general_statistics["Cv"] = round(general_statistics["sd"] / general_statistics["mean"],2)
+print(general_statistics)
+```
+
+## Correlation plot
+```{r, message=FALSE, warning=FALSE}
+chart.Correlation(data_lidar[,c(5: (dim(data_lidar)[2]))], histogram = TRUE, method = c("pearson"))
+```
+
+## Multivariate analysis
+### PCA
+```{r}
+data_pca = data_lidar[,c(5: (dim(data_lidar)[2]))]
+length = dim(data_pca)[2]
+data_pca = na.omit(data_pca)
+
+pca = PCA(data_pca, graph=FALSE)
+plot(pca, choix="var", axes=c(1,2))
+plot(pca, choix="var", axes=c(1,3))
+```
+
+### PCA with clustering
+```{r, warning = FALSE}
+nb_groups = 6 
+
+mydata =scale(data_pca, center = TRUE, scale = TRUE)
+id_names = paste0(data_lidar[,1],"-", data_lidar[,2], "-",data_lidar[,3])
+rownames(mydata) = id_names
+d=dist(mydata)
+fit=hclust(d,method = "ward")
+groups=cutree(fit,k=nb_groups)
+data_pca$groups = groups
+pca = PCA(data_pca, graph=FALSE)
+
+plot(pca$ind$coord[,"Dim.1"], pca$ind$coord[,"Dim.2"], xlab="axe1", ylab="axe2",xlim=c(1.2*min(pca$ind$coord[,"Dim.1"]), 0.8*max(pca$ind$coord[,"Dim.1"])), ylim = c(1.2*min(pca$ind$coord[,"Dim.2"]), 1.2*max(pca$ind$coord[,"Dim.2"])), col=data_pca$groups)
+abline(h=0,v=0, lty=2)
+legend1 = c("groupe1")
+for (i in (2:nb_groups)) {legend1 = c(legend1, paste("groupe",i, sep=""))}
+legend("topleft", legend = legend1,text.col = c(1:nb_groups), cex = 0.8, bty = "n")
+
+data_pca$groups = groups
+mean_values = aggregate(data_pca[,1:length], list(data_pca$groups), mean)
+print(mean_values)
+
+```
+
+# Basic genetics analysis (heritability)
+```{r}
+data_heritability = as.data.frame(matrix(nrow = 5, ncol = 2))
+colnames(data_heritability) = c("variable","heritability")
+list_variables = c("volume", "diameter", "height", "estimated_leaf_area", "STAR","max_excentricity")
+acc = 0
+ 
+for (i in list_variables)
+{ acc = acc  + 1
+  model0 <-lmer(data_lidar[,i] ~  (1|name) + treatment, data=data_lidar )
+  variance_results = as.data.frame(VarCorr(model0))
+  Var_G = variance_results$vcov[1]
+  Var_R = variance_results$vcov[2]
+  hG = Var_G / (Var_G + Var_R/4)
+  hist(residuals(model0), , xlab = "residuals", main = i)
+  data_heritability[acc,] = c(i,round(hG,2))
+  
+}
+print(data_heritability)
+```
+
+# Analysis of the water treatment impact
+```{r}
+data_stress = as.data.frame(matrix(nrow = 5, ncol = 2))
+colnames(data_stress) = c("variable","relative_effect")
+list_variables = c("volume", "diameter", "height", "estimated_leaf_area", "STAR","max_excentricity")
+acc = 0
+for (i in list_variables)
+{ acc = acc  + 1
+  boxplot(data_lidar[,i] ~ treatment, data= data_lidar, xlab="treatment",ylab=i, main=i, col=c("red","blue"))
+  model0 <-lmer(data_lidar[,i] ~  (1|name) + treatment, data=data_lidar )
+  print(Anova(model0)["Pr(>Chisq)"])
+  data_stress[acc,] = c(i, - round(fixef(model0)[2]/mean(data_lidar[,i]),2)) ### - because we estimate the effect of the WW treatment
+}
+print(data_stress)
+```
