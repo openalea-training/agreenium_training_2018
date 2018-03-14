@@ -1,0 +1,242 @@
+---
+title: "Shoot demography and branching analysis"
+author: "B.Pallas & C.Pradal"
+date: "March 2018"
+colorlinks: true
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: TRUE
+---
+
+# Overview
+```{r,  results='hide', message=FALSE, warning=FALSE}
+library(multcomp)
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+library(matrixStats)
+library(knitr)
+```
+
+Definition of growth units: </li>
+<li> U : long growth units  </li> 
+<li> W : medium growth units </li>
+<li> D : short growth units </li>
+<li> I : inflorescence growth units </li>
+<li> B : blind nodes </li>
+</li>
+
+
+# GU number and length analysis
+## GU number per type and year
+```{r, echo=FALSE}
+setwd("D:/Benoit/2018/formation Agreenium/output/MTG_fuji1")
+data_GU = read.csv("result_GU_num.csv", header=T, sep=",")
+p <- ggplot(data_GU, aes(x = year, y= number, color=class)) + 
+  xlab("Year") +
+  ylab("Number of growth units") + 
+  geom_point(size = 2.5) + 
+  geom_line()+
+  theme(axis.text.x = element_text(size = 15), 
+        strip.text.x = element_text(size = 15), 
+        strip.text.y =   element_text(size = 15)) + 
+  background_grid(major = 'y', minor = "none") + # add thin horizontal lines 
+  panel_border() 
+print(p)
+
+data_GU$pourc = c(0)
+for (i in (1:dim(data_GU)[1])) {data_GU$pourc[i] = data_GU$number[i] / sum(data_GU[data_GU$year == data_GU[i,"year"],"number"])}
+
+ggplot(data_GU, aes(x=year, y=pourc, fill=class)) +
+  geom_bar(stat="identity") + xlab("year") + ylab("GU type proportion")
+```
+
+
+## GU Length
+```{r, echo=FALSE}
+setwd("D:/Benoit/2018/formation Agreenium/output/MTG_fuji1")
+data_length = read.csv("result_metamer_num.csv", sep=",", dec = ".")
+str(data_length)
+data_length = data_length[!(data_length$class %in% c("D","I")),]
+breaks_= seq(0,70,2.5)
+hist(data_length$number, breaks = breaks_, main = "Length_distribution", xlab = "metamer number", ylab = "GU number")
+
+data_length_medium = data_length[(data_length$class == "W"),]
+data_length_long = data_length[(data_length$class == "U"),]
+par(mfrow = c(1,2))
+hist(data_length_medium$number, breaks = breaks_, main = "Length_distribution_medium", xlab = "metamer number", ylab = "GU number", col="blue")
+hist(data_length_long$number, breaks = breaks_, main = "Length_distribution_long", xlab = "metamer number", ylab = "GU number", col="red")
+print(paste("medium_GU", "mean:", round(mean(data_length_medium$number),2), "sd:", round(colSds(as.matrix(data_length_medium$number)),2)))
+print(paste("long_GU", "mean:", round(mean(data_length_long$number),2), "sd:", round(colSds(as.matrix(data_length_long$number)),2)))
+
+      
+```
+
+
+# Successions among Growth units
+```{r, echo=FALSE}
+setwd("D:/Benoit/2018/formation Agreenium/output/MTG_fuji1")
+data_succession = read.csv("result_successors.csv", sep=",", dec = ".")
+
+data_succession[, c((dim(data_succession)[2] + 1) : (dim(data_succession)[2] + 4))] = 0
+colnames(data_succession)[(dim(data_succession)[2] - 3 ) : (dim(data_succession)[2])] = c("pourc_I","pourc_U", "pourc_D", "pourc_W")
+
+
+for (i in (1:dim(data_succession)[1]))
+{
+data_succession$pourc_I[i] = round(data_succession$I[i] / sum(data_succession$I[i] + data_succession$U[i] +  data_succession$D[i] + data_succession$W[i] ),2)
+data_succession$pourc_U[i] = round(data_succession$U[i] / sum(data_succession$I[i] + data_succession$U[i] +  data_succession$D[i] + data_succession$W[i] ),2)
+data_succession$pourc_D[i] = round(data_succession$D[i] / sum(data_succession$I[i] + data_succession$U[i] +  data_succession$D[i] + data_succession$W[i] ),2)
+data_succession$pourc_W[i] = round(data_succession$W[i] / sum(data_succession$I[i] + data_succession$U[i] +  data_succession$D[i] + data_succession$W[i] ),2)
+}
+
+data_sum = as.data.frame(matrix(nrow = 1, ncol = 4))
+colnames(data_sum) = c("I","U","D","W")
+
+for (i in levels(data_succession$class))
+{
+  data_succession_class = data_succession[data_succession$class == i,]
+  data_succession_class= data_succession_class[order(data_succession_class$year),]
+  print(kable(data_succession_class[,c(2,7:10)], row.names=FALSE, caption = paste("succession after", i)))
+  data_sum$I = round(colSums(data_succession_class[3:6])["I"] / sum(colSums(data_succession_class[3:6])),2) 
+  data_sum$U = round(colSums(data_succession_class[3:6])["U"] / sum(colSums(data_succession_class[3:6])),2)
+  data_sum$D = round(colSums(data_succession_class[3:6])["D"] / sum(colSums(data_succession_class[3:6])),2)
+  data_sum$W = round(colSums(data_succession_class[3:6])["W"] / sum(colSums(data_succession_class[3:6])),2)
+  print(kable(data_sum, row.names=FALSE, caption = paste("succession after", i, "all years")))
+}
+```
+
+
+
+# Branching analysis 
+
+## Branch number
+```{r, echo=FALSE}
+setwd("D:/Benoit/2018/formation Agreenium/output/MTG_fuji1")
+data_br_number = read.csv("result_branch_num.csv", sep=",", dec = ".")
+str(data_br_number)
+
+data_br_number_long = data_br_number[data_br_number$class == "U",]
+data_br_number_medium = data_br_number[data_br_number$class == "W",]
+par(mfrow=c(1,2))
+breaks_ = seq(0,35,1)
+hist(data_br_number_long$number, breaks = breaks_, main = "branch_number_long", xlab = "branch number", ylab = "shoot number", col="red")
+hist(data_br_number_medium$number, breaks = breaks_, main = "branch_number_medium", xlab = "branch number", ylab = "shoot number", col="blue")
+print(paste("long_GU", "mean:", round(mean(data_br_number_long$number),2), "sd:", round(colSds(as.matrix(data_br_number_long$number)),2)))
+print(paste("medium_GU", "mean:", round(mean(data_br_number_medium$number),2), "sd:", round(colSds(as.matrix(data_br_number_medium$number)),2)))
+```
+
+
+## Branching profile for inflorescences
+```{r, echo=FALSE}
+setwd("D:/Benoit/2018/formation Agreenium/output/MTG_fuji1")
+data_ramif = read.csv("result_ramif_location.csv", header=T, sep=",")
+str(data_ramif)
+data_ramif$rel_pos = c(0)
+for (i  in (1:dim(data_ramif)[1]))
+{ data_ramif[i,"rel_pos"] = round(data_ramif[i,"metamer_rank"] / max(data_ramif[data_ramif$cid == data_ramif[i, "cid"],"metamer_rank"]),1)}
+
+data_ramif$rel_pos = as.factor(data_ramif$rel_pos)
+data_ramif = data_ramif[!(data_ramif$class %in% c("I","D")),]  ### to remove the sympodial branch after an inflorescence
+data_ramif$class = droplevels(data_ramif$class)
+data_ramif = data_ramif[!is.na(data_ramif$rel_pos),]
+data_ramif$age_type = c("")
+data_ramif[data_ramif$year %in% c("94","95","96"),"age_type"] = "94-95-96"
+data_ramif[data_ramif$year %in% c("97","98","99"),"age_type"] = "97-98-99"
+data_ramif$age_type = as.factor(data_ramif$age_type)
+final_table=as.data.frame(matrix(nrow=0, ncol = 6))
+colnames(final_table) = c("class", "age_type","Rel_pos", "Type", "Number","pourc")
+
+for (i in levels(data_ramif$class))
+     {for (j in levels(data_ramif$age_type)){ 
+          n=0
+          sub_data=data_ramif[(data_ramif$age_type == j & data_ramif$class == i),]
+          result_table = table(sub_data$rel_pos,sub_data$ramif_class)
+          result_table_d = as.data.frame(result_table)
+          colnames(result_table_d) = c("Rel_pos","Ramif_class","Number")
+          result_table_d$pourc = c(0)
+      for (k in (1:dim(result_table_d)[1]))
+              {result_table_d$pourc[k] = round(result_table_d$Number[k] /  sum(result_table_d[result_table_d$Rel_pos==result_table_d[k,"Rel_pos"],"Number"]),2)
+               n = n + 1}
+        dim_ = dim(final_table)[1]
+        final_table[c((dim_ + 1): (dim_ + n)),c(3,5:6)] = result_table_d[,c(1,3:4)]  
+        final_table[c((dim_ + 1): (dim_ + n )),c(4)] = as.character(result_table_d[,2])
+        final_table[c((dim_ + 1): (dim_ + n )),c(1)] = i
+        final_table[c((dim_ + 1): (dim_ + n )),c(2)] = j}}
+
+final_table = final_table[final_table$Type == "I",]
+p <- ggplot(final_table, aes(x = Rel_pos, y= pourc, color=Type)) + 
+  xlab("Relative position along shoot") +
+  ylab("Probability") + 
+  geom_point(size = 2.5) + 
+  geom_line()+
+  theme(axis.text.x = element_text(size = 15), 
+        strip.text.x = element_text(size = 15), 
+        strip.text.y =   element_text(size = 15)) + 
+  facet_grid( class ~ age_type)  +
+  background_grid(major = 'y', minor = "none") + 
+  panel_border() 
+print(p + ylim(0,1))
+```
+
+
+
+## Branching profile without inflorescence
+```{r, echo=FALSE}
+setwd("D:/Benoit/2018/formation Agreenium/output/MTG_fuji1")
+data_ramif = read.csv("result_ramif_location_variant.csv", header=T, sep=",")
+str(data_ramif)
+data_ramif$rel_pos = c(0)
+for (i  in (1:dim(data_ramif)[1]))
+{ data_ramif[i,"rel_pos"] = round(data_ramif[i,"metamer_rank"] / max(data_ramif[data_ramif$cid == data_ramif[i, "cid"],"metamer_rank"]),1)}
+
+data_ramif$rel_pos = as.factor(data_ramif$rel_pos)
+data_ramif = data_ramif[!(data_ramif$class %in% c("I","D")),] 
+data_ramif$class = droplevels(data_ramif$class)
+data_ramif = data_ramif[!is.na(data_ramif$rel_pos),]
+data_ramif$age_type = c("")
+data_ramif[data_ramif$year %in% c("94","95","96"),"age_type"] = "94-95-96"
+data_ramif[data_ramif$year %in% c("97","98","99"),"age_type"] = "97-98-99"
+data_ramif$age_type = as.factor(data_ramif$age_type)
+final_table=as.data.frame(matrix(nrow=0, ncol = 6))
+colnames(final_table) = c("class", "age_type","Rel_pos", "Type", "Number","pourc")
+
+for (i in levels(data_ramif$class))
+     {for (j in levels(data_ramif$age_type)){ 
+          n=0
+          sub_data=data_ramif[(data_ramif$age_type == j & data_ramif$class == i),]
+          result_table = table(sub_data$rel_pos,sub_data$ramif_class)
+          result_table_d = as.data.frame(result_table)
+          colnames(result_table_d) = c("Rel_pos","Ramif_class","Number")
+          result_table_d$pourc = c(0)
+      for (k in (1:dim(result_table_d)[1]))
+              {result_table_d$pourc[k] = round(result_table_d$Number[k] /  sum(result_table_d[result_table_d$Rel_pos==result_table_d[k,"Rel_pos"],"Number"]),2)
+               n = n + 1}
+        dim_ = dim(final_table)[1]
+        final_table[c((dim_ + 1): (dim_ + n)),c(3,5:6)] = result_table_d[,c(1,3:4)]  
+        final_table[c((dim_ + 1): (dim_ + n )),c(4)] = as.character(result_table_d[,2])
+        final_table[c((dim_ + 1): (dim_ + n )),c(1)] = i
+        final_table[c((dim_ + 1): (dim_ + n )),c(2)] = j}}
+
+final_table = final_table[final_table$Type != "I",]
+p <- ggplot(final_table, aes(x = Rel_pos, y= pourc, color=Type)) + 
+  xlab("Relative position along shoot") +
+  ylab("Probability") + 
+  geom_point(size = 2.5) + 
+  geom_line()+
+  theme(axis.text.x = element_text(size = 15), 
+        strip.text.x = element_text(size = 15), 
+        strip.text.y =   element_text(size = 15)) + 
+  facet_grid( class ~ age_type)  +
+  background_grid(major = 'y', minor = "none") + # add thin horizontal lines 
+  panel_border() 
+print(p + ylim(0,1))
+
+```
+
+
+
+
