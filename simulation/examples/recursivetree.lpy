@@ -1,0 +1,75 @@
+from openalea.plantgl.all import *
+from math import degrees,pi
+from random import uniform, seed
+
+
+seed(0)
+l = 50.
+nl = 5
+phyllotaxy = 90
+max_order = 6
+
+
+module  A
+
+Axiom:   _(diameter(0))  @Gc A(l-1,0)
+
+derivation length: int(l)
+production:
+
+A(x, order) :
+    u = 1-x/l 
+    if x <= 0 : produce
+    if x % nl == 0.0:
+        if order < max_order:
+            nproduce   [ /(phyllotaxy*(x/nl))  &(100*branching_angle(u)) @v
+            nproduce A(x-1,  order+1) ]
+    produce F(1, diameter(u)) A(x-1, order)
+
+
+
+interpretation:
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	scalars = [('max_order', 'Integer', 6, 0, 100)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	path = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.00852268, -0.329545, 1),(-0.0501894, -0.0568182, 1),(0.0700758, 0.167614, 1),(0.0170455, 0.46875, 1)]) , 
+	    )
+	path.name = "path"
+	import openalea.plantgl.all as pgl
+	diameter = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.680178, 1),(0.326646, 0.244094, 1),(0.675733, 0.262932, 1),(1, 0.0232957, 1)]) , 
+	    )
+	diameter.name = "diameter"
+	branchpath = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.551136, -0.00284096, 1),(-0.212121, 0.107955, 1),(-0.0719697, 0.0568182, 1),(0.301136, 0.0965909, 1),(0.299465, 0.415776, 1)]) , 
+	    )
+	branchpath.name = "branchpath"
+	node_length = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.118311, 1),(0.335046, 0.235342, 1),(0.631236, 0.222634, 1),(1, 0.0713972, 1)]) , 
+	    )
+	node_length.name = "node_length"
+	branching_angle = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.539567, 1),(0.365422, 0.522996, 1),(0.761742, 0.422768, 1),(1, 0.0584769, 1)]) , 
+	    )
+	branching_angle.name = "branching_angle"
+	panel_0 = ({'active': True, 'visible': True, 'name': 'Panel 1'},[('Curve2D',path),('Function',diameter),('Curve2D',branchpath),('Function',node_length),('Function',branching_angle)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('diameter',diameter),('node_length',node_length),('branching_angle',branching_angle),]
+	context["__curves__"] = [('path',path),('branchpath',branchpath),]
+	context["__parameterset__"] = parameterset
+	context["path"] = path
+	context["diameter"] = pgl.QuantisedFunction(diameter)
+	context["branchpath"] = branchpath
+	context["node_length"] = pgl.QuantisedFunction(node_length)
+	context["branching_angle"] = pgl.QuantisedFunction(branching_angle)

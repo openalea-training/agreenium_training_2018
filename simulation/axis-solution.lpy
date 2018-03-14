@@ -1,4 +1,3 @@
-import notebook_util as nu ; reload(nu)
 from notebook_util import notebook
 exec(notebook('Apple Tree Simulation - Organs.ipynb'))
 
@@ -24,25 +23,36 @@ module Leaf
 module Internode
 
 
-Axiom: Internode(ParameterSet(length=0.01, finallength = internode_length(rank = 1), width=0.01, ttime = 0)) [&(60) Leaf(ParameterSet(area=0, finalarea = leaf_area(rank = 1), ttime = 0)) ]
+Axiom:
+  nbmetamer = growth_unit_length(TrunkGU)
+  produce Meristem(MetamerProduction(metamerprodrate, nbmetamer))
 
 derivation length: 100
 production:
 
+Meristem(p):
+  previousnbmetamer = p.nbmetamer
+  nbnewmetamer = p.accumulate(cdate)
+  for i in xrange(nbnewmetamer):
+    nproduce Internode(ParameterSet(length=0.01, finallength = internode_length(rank = previousnbmetamer+i), width=0.01, ttime = 0))
+    nproduce /(144) [&(60) Leaf(ParameterSet(area=0, finalarea = leaf_area(rank = previousnbmetamer+i), ttime = 0)) ]
+  nproduce Meristem(p)
+
+
 Internode(p) :
   cttime = mthermaltime.get_effective_temperature(cdate)
-  p.ttime += cttime
   
   p.length += growth_rate(p.ttime, p.finallength, tip_internode, b_internode)*cttime
-  p.width += growth_rate(p.ttime, 0.1, tip_internode, b_internode)*cttime
+  p.width += growth_rate(p.ttime, InternodeRadius, tip_internode, b_internode)*cttime
+  p.ttime += cttime
   
   produce Internode(p)
 
 Leaf(p):
   cttime = mthermaltime.get_effective_temperature(cdate)
-  p.ttime += cttime
   
   p.area += growth_rate(p.ttime, p.finalarea, tip_leaf, b_leaf)*cttime
+  p.ttime += cttime
   
   produce Leaf(p)
 
@@ -61,8 +71,7 @@ Flower(t) :
   nproduce [ F(3) ,(11) &(90) TextureScale(1) @o(5)]
 
 Fruit :
-  nproduce [ @v @h &(90) @Tp(0,0,-1) @Ts(0.1) nF(1,0.1)  ,(3) @g(Revolution(applesection),2) ]
-
+  nproduce [ @v @h &(90) @Tp(0,0,-1) @Ts(0.1) ,(2) _(0.05) nF(1,0.1)  ,(3) f(1.5) @g(Revolution(applesection),3) ]
 
 endlsystem
 ###### INITIALISATION ######
@@ -71,13 +80,14 @@ __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
 	import openalea.plantgl.all as pgl
-	PGL_140198948795360 = pgl.ImageTexture("PGL_140198948795360" , "./apple-leaf.png" , )
-	PGL_140198948795360.name = "PGL_140198948795360"
-	Color_10 = pgl.Texture2D(image = PGL_140198948795360 , )
+	PGL_140198936196256 = pgl.ImageTexture("PGL_140198936196256" , "./apple-leaf.png" , )
+	PGL_140198936196256.name = "PGL_140198936196256"
+	Color_10 = pgl.Texture2D(image = PGL_140198936196256 , )
 	Color_10.name = "Color_10"
 	context.turtle.setMaterial(10,Color_10)
-	PGL_140556071559264 = pgl.ImageTexture("PGL_140556071559264" , "./flower-small.png" , )
-	Color_11 = pgl.Texture2D(image = PGL_140556071559264 , )
+	PGL_140556072671616 = pgl.ImageTexture("PGL_140556072671616" , "./flower-small.png" , )
+	PGL_140556072671616.name = "PGL_140556072671616"
+	Color_11 = pgl.Texture2D(image = PGL_140556072671616 , )
 	Color_11.name = "Color_11"
 	context.turtle.setMaterial(11,Color_11)
 	import openalea.plantgl.all as pgl
@@ -85,9 +95,14 @@ def __initialiseContext__(context):
 	    pgl.Point2Array([(-1.01037, 0.524751),(-0.0030303, -0.00517379),(1.01037, 0.503186)]) , 
 	    )
 	leafsection.name = "leafsection"
-	panel_0 = ({'active': True, 'visible': True, 'name': 'Panel 1'},[('Curve2D',leafsection)])
+	applesection = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.000874121, -0.389685, 1),(0.0162006, -0.606468, 1),(0.629545, -0.424825, 1),(0.712296, 0.0104895, 1),(0.645105, 0.516783, 1),(-0.00961528, 0.627098, 1),(-0.0171328, 0.394231, 1)]) , 
+	    )
+	applesection.name = "applesection"
+	panel_0 = ({'active': True, 'visible': True, 'name': 'Panel 1'},[('Curve2D',leafsection),('Curve2D',applesection)])
 	parameterset = [panel_0,]
 	context["__functions__"] = []
-	context["__curves__"] = [('leafsection',leafsection),]
+	context["__curves__"] = [('leafsection',leafsection),('applesection',applesection),]
 	context["__parameterset__"] = parameterset
 	context["leafsection"] = leafsection
+	context["applesection"] = applesection

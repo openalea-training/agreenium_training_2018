@@ -3,8 +3,8 @@ exec(notebook('Apple Tree Simulation - Organs.ipynb'))
 exec(notebook('Apple Tree Simulation - Architecture.ipynb'))
 
 from math import *
-from openalea.plantgl.all import Revolution
 from random import seed
+from openalea.plantgl.all import Revolution
 
 seed(SEED)
 
@@ -19,12 +19,13 @@ def Start():
   initcdate()
 
 
-def StartEach():
+def StartEach(lstring):
+  backward()
   global cdate
   if cdate.month == 12:
     useGroup(3)
   else:
-    useGroup(0)
+    useGroup(2 if getIterationNb() % 3 == 0 else 0)
   if cdate.month in range(11,13)+range(1,4):
     deltatime = 10
   else:
@@ -38,6 +39,8 @@ module Meristem
 module Leaf
 module Internode
 module SimuInfo
+module Flower
+module Fruit
 
 def init_meristem(gutype, parentdate = None):
   if parentdate is None:
@@ -54,6 +57,9 @@ def init_meristem(gutype, parentdate = None):
                    init_date = init_date)
   return p
 
+radiusconstant = 0.25
+radiusexponent = 0.27
+
 Axiom:
   nproduce  Meristem(init_meristem(TrunkGU))
   produce SimuInfo
@@ -69,8 +75,8 @@ Meristem(p):
     for i in xrange(nbnewmetamer):
       rank =  previousnbmetamer+i
       normalizedrank = rank / p.mp.nbfinalmetamer
-      nproduce Internode(ParameterSet(length=0.01, finallength = internode_length(rank = rank), width=0.01, ttime = 0))
-      nproduce   /(144) [  &(60) Leaf(ParameterSet(area=0, finalarea = leaf_area(rank = rank), width=0.1, ttime = 0)) ]
+      nproduce Internode(ParameterSet(length=0.01, finallength = internode_length(rank = rank), width=radiusconstant, ttime = 0, nbchildren = 1))
+      nproduce /(144) [  &(60) Leaf(ParameterSet(area=0, finalarea = leaf_area(rank = rank), ttime = 0)) ]
       ramiftype = branching(p.gutype, normalizedrank)
       if ramiftype in [SyllepticShort, SyllepticMedium, SyllepticLong] and cdate.year >= 2011:
         ramiftype = set_proleptic(ramiftype)
@@ -80,19 +86,16 @@ Meristem(p):
     if p.mp.nbmetamer < p.mp.nbfinalmetamer:
       nproduce Meristem(p)
     else:
-      # succession
-      produce Meristem(init_meristem(succession(p.gutype), p.init_date))
+      if p.gutype == Inflo:
+        nproduce [ &(15) Meristem(init_meristem(set_sylleptic(succession(p.gutype)), p.init_date)) ]
+        produce Flower(0)
+      else:
+        nextgu = succession(p.gutype)
+        # succession
+        produce Meristem(init_meristem(nextgu, p.init_date))
           
   
 
-Internode(p) :
-  cttime = mthermaltime.get_effective_temperature(cdate)
-  p.ttime += cttime
-  
-  p.length += growth_rate(p.ttime, p.finallength, tip_internode, b_internode)*cttime
-  p.width += growth_rate(p.ttime, InternodeRadius, tip_internode, b_internode)*cttime
-  
-  produce Internode(p)
 
 Leaf(p):
   cttime = mthermaltime.get_effective_temperature(cdate)
@@ -102,10 +105,35 @@ Leaf(p):
   
   produce Leaf(p)
 
-
 Flower(t):
   if t < 30: produce Flower(t+1)
   else : produce Fruit
+
+
+group 2:
+consider: Internode, Meristem
+Internode(p) >> []  x([Internode(pb)]) x([Meristem(pm)]) x(Internode(pa),1) :
+  p.nbchildren = sum([pi.nbchildren for pi in pb])+sum([pi.nbchildren for pi in pa])+1
+  
+  if p.ttime < tip_internode*5:
+    cttime = mthermaltime.get_effective_temperature(cdate)
+    p.ttime += cttime
+  
+    p.length += growth_rate(p.ttime, p.finallength, tip_internode, b_internode)*cttime
+    #p.width += growth_rate(p.ttime, InternodeRadius, tip_internode, b_internode)*cttime
+  #else:
+  p.width = radiusconstant * pow(p.nbchildren, radiusexponent)
+  
+  produce Internode(p)
+
+group 0:
+Internode(p) :
+  if p.ttime < tip_internode*5:
+    cttime = mthermaltime.get_effective_temperature(cdate)
+    p.ttime += cttime
+    
+    p.length += growth_rate(p.ttime, p.finallength, tip_internode, b_internode)*cttime
+  
 
 group 3:
 
@@ -118,11 +146,11 @@ group 0:
 
 Internode(p) --> _(p.width) F(p.length)
 
-Leaf(p) :
+Internode(pi) < Leaf(p) :
   if p.area > 0:
     width = sqrt(p.area / 1.4)
     length = 2 * width
-    produce ,(10)  SetContour(leafsection) TextureVScale(1./length) _(width/2) F(length)
+    produce ,(10) f(pi.width) SetContour(leafsection) TextureVScale(1./length) _(width/2) F(length)
 
 
 Flower(t) :
@@ -146,9 +174,9 @@ def __initialiseContext__(context):
 	Color_10 = pgl.Texture2D(image = PGL_140198936196256 , )
 	Color_10.name = "Color_10"
 	context.turtle.setMaterial(10,Color_10)
-	PGL_140241087914336 = pgl.ImageTexture("PGL_140241087914336" , "./flower-small.png" , )
-	PGL_140241087914336.name = "PGL_140241087914336"
-	Color_11 = pgl.Texture2D(image = PGL_140241087914336 , )
+	PGL_140490263087120 = pgl.ImageTexture("PGL_140490263087120" , "./flower-small.png" , )
+	PGL_140490263087120.name = "PGL_140490263087120"
+	Color_11 = pgl.Texture2D(image = PGL_140490263087120 , )
 	Color_11.name = "Color_11"
 	context.turtle.setMaterial(11,Color_11)
 	scalars = [('SEED', 'Integer', 63, 0, 100)]
