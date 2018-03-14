@@ -1,63 +1,21 @@
-from notebook_util import notebook
-exec(notebook('Apple Tree Simulation - Organs.ipynb'))
-
 from math import *
-
-cdate = None
-def initcdate():
-  global cdate
-  cdate = meteo.get_first_day_for_temperature()+timedelta(days=120)
-
-initcdate()
-
-def Start():
-  initcdate()
-
-
-def StartEach():
-  global cdate
-  cdate += timedelta(days=1)
+from openalea.plantgl.all import Revolution
 
 module Meristem
 module Leaf
 module Internode
+module SimuInfo
+module Flower
+module Fruit
+
+Axiom:  Internode(ParameterSet(length = 2, width=0.1)) [&(60) Leaf(ParameterSet(area = 35,ttime = 0)) ]
 
 
-Axiom:
-  nbmetamer = growth_unit_length(TrunkGU)
-  produce Meristem(MetamerProduction(metamerprodrate, nbmetamer))
-
-derivation length: 100
+derivation length: 1
 production:
 
-Meristem(p):
-  # Retrieve current nb of metamers produce by the meristem (p.metamer)
-  # accumulate the temperature and retrieve the nb of new metamers to produce
-  # for each metamer to produce
-  #    produce an Internode whose finallength is given by the internode_length function, length and width and ttime set to 0
-  #    produce symbol for phyllotaxy (144 for the apple tree)
-  #    produce lateraly (with a branching angle of 60) a leaf whose finalarea is given by function leaf_area, and area and width and ttime set to 0
-  produce Meristem(p)
-
-
-Internode(p) :
-  cttime = mthermaltime.get_effective_temperature(cdate)
-  
-  p.length += growth_rate(p.ttime, p.finallength, tip_internode, b_internode)*cttime
-  p.width += growth_rate(p.ttime, InternodeRadius, tip_internode, b_internode)*cttime
-  p.ttime += cttime
-  
-  produce Internode(p)
-
-Leaf(p):
-  cttime = mthermaltime.get_effective_temperature(cdate)
-  
-  p.area += growth_rate(p.ttime, p.finalarea, tip_leaf, b_leaf)*cttime
-  p.ttime += cttime
-  
-  produce Leaf(p)
-
 interpretation:
+group 0:
 
 Internode(p) --> _(p.width) F(p.length)
 
@@ -74,6 +32,7 @@ Flower(t) :
 Fruit :
   nproduce [ @v @h &(90) @Tp(0,0,-1) @Ts(0.1) ,(2) _(0.05) nF(1,0.1)  ,(3) f(1.5) @g(Revolution(applesection),3) ]
 
+
 endlsystem
 ###### INITIALISATION ######
 
@@ -86,9 +45,9 @@ def __initialiseContext__(context):
 	Color_10 = pgl.Texture2D(image = PGL_140198936196256 , )
 	Color_10.name = "Color_10"
 	context.turtle.setMaterial(10,Color_10)
-	PGL_140556072671616 = pgl.ImageTexture("PGL_140556072671616" , "./flower-small.png" , )
-	PGL_140556072671616.name = "PGL_140556072671616"
-	Color_11 = pgl.Texture2D(image = PGL_140556072671616 , )
+	PGL_140490263087120 = pgl.ImageTexture("PGL_140490263087120" , "./flower-small.png" , )
+	PGL_140490263087120.name = "PGL_140490263087120"
+	Color_11 = pgl.Texture2D(image = PGL_140490263087120 , )
 	Color_11.name = "Color_11"
 	context.turtle.setMaterial(11,Color_11)
 	import openalea.plantgl.all as pgl
