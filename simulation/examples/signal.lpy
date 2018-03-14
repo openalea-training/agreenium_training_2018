@@ -20,10 +20,6 @@ I(x) < B(d) :
 
 R(t) --> R(t-1)
 
-R(t) < I(x):
-  if t < 0: produce I(1)
-
-I(x) < I(s) --> I(x)
 
 interpretation:
 
