@@ -15,15 +15,11 @@ def maize_leaves_path():
     return os.path.join(data_dir, 'leaves_simple.db')
 
 
-def bell_shaped_dist(plant_area=1, nb_phy=15, rmax=.7, skewness=5, a_max=0.15):
+def bell_shaped_dist(plant_area=1, nb_phy=15, rmax=.7, skew=0.15):
     """ returns leaf area of individual leaves along bell shaped model """
 
-    if a_max is not None:
-        #0.15 is relative area max for rmax = 0.7 and skewness = 5 (typical bell shaped)
-        # this allow to keep area max arround same value
-        skewness = -numpy.log(a_max) * rmax
+    k = -numpy.log(skew) * rmax
     r = numpy.linspace(1. / nb_phy, 1, nb_phy)
-    k = skewness
     relative_surface = numpy.exp(
         -k / rmax * (2 * (r - rmax) ** 2 + (r - rmax) ** 3))
     leaf_area = relative_surface / relative_surface.sum() * plant_area
@@ -41,30 +37,30 @@ def geometric_dist(height=15, nb_phy=15, q=1):
     return [u0 * q ** i for i in range(nb_phy)]
 
 
-def leaf_azimuth(size=1, phyllotaxy=180, deviation=15, first=0, spiral=False):
+def leaf_azimuth(size=1, phyllotactic_angle=180, phyllotactic_deviation=15, plant_orientation=0, spiral=False):
     """ Generate leaf azimuth series
 
     Args:
         size: the size of the sample
-        phyllotaxy: if spiral=False (default) the phyllotactic angle (deg) bet
+        phyllotactic_angle: if spiral=False (default) the phyllotactic angle (deg) bet
         ween 'left and right' leaves. If spiral is True, the angle between
         successive leaves (deg)
-        deviation: half-amplitude of deviation around phyllotactic
+        phyllotactic_deviation: half-amplitude of deviation around phyllotactic
         angle (deg)
-        first : first azimuth of the serie (deg, from X+ positive
+        plant_orientation : first azimuth of the serie (deg, from X+ positive
         counter-clockwise)
 
     Returns:
         an array of azimuths (deg, from X+, positive counter-clockwise)
     """
     if size == 1:
-        return first
+        return plant_orientation
     if spiral:
-        main = numpy.arange(0, size) * phyllotaxy
+        main = numpy.arange(0, size) * phyllotactic_angle
     else:
-        it = cycle((0, phyllotaxy))
+        it = cycle((0, phyllotactic_angle))
         main = numpy.array([it.next() for i in xrange(size)])
-    azim = first + main + (numpy.random.random(size) - 0.5) * 2 * deviation
+    azim = plant_orientation + main + (numpy.random.random(size) - 0.5) * 2 * phyllotactic_deviation
     azim = azim % 360
     return numpy.where(azim <= 180, azim, azim - 360)
 
@@ -117,25 +113,10 @@ def parametric_leaf(nb_segment=10, insertion_angle=50, delta_angle=180,
     return fit3(x, y, s, r, nb_points=nb_segment)
 
 
-def simple_maize(plant_area=10000,
-                 plant_height=200,
-                 pseudostem_height=20,
-                 phytomer=16,
-                 # leaf area dist function
-                 lad_skew=5,
-                 lad_rmax=0.67,
-                 # proression of distances between leaves
-                 pseudostem_dist=1.4,
-                 stem_dist=1.,
-                 diam_base=2.5,
-                 diam_top=1,
-                 leaves=None,
-                 phyllotaxy=180,
-                 deviation=15,
-                 plant_azimuth=0,
-                 wl=0.1,
-                 a_max=None,
-                 seed=None):
+def simple_maize(plant_area=10000, plant_height=200, pseudostem_height=20,
+                 phytomer=16, rmax=0.67, pseudostem_dist=1.4, stem_dist=1.,
+                 diam_base=2.5, diam_top=1, leaves=None, phyllotactic_angle=180,
+                 phyllotactic_deviation=15, plant_orientation=0, wl=0.1, skew=0.15, seed=None):
     """ Generate a detailed parameter set for maize simulation from global
     parameters
 
@@ -144,9 +125,8 @@ def simple_maize(plant_area=10000,
         plant_height:  height of the stem
         pseudostem_height:  height of the highestpseudo-stem collar
         phytomer: number of phytomers
-        lad_skew: controls the skewness of the leaf area as a function of
         leaf rank function
-        lad_rmax: control the magitude of the leaf area as a function of
+        rmax: control the magitude of the leaf area as a function of
         leaf rank function
         pseudostem_dist: parameter contrling spacing between pseudostem leaves
         stem_dist: parameter controling spacing between stem leaves
@@ -155,9 +135,9 @@ def simple_maize(plant_area=10000,
         leaves: a {rank: (x, y, s, r)} dict of tuples defining the (x,y)
         coordinates of leaf midribs and (s,r) coordinate defining the radius as
         a function of distance to leaf base
-        phyllotaxy: phyllotactic angle between successive leaves (deg)
-        deviation: absolute deviation around phyllotactic angle (deg)
-        plant_azimuth: azimuth orientation (deg, from X+, positive
+        phyllotactic_angle: phyllotactic angle between successive leaves (deg)
+        phyllotactic_deviation: absolute deviation around phyllotactic angle (deg)
+        plant_orientation: azimuth orientation (deg, from X+, positive
         counter-clockwise) of the first leaf of the plant
 
     Returns: A pandas Dataframe with individual organ dimensions and geometric
@@ -180,7 +160,8 @@ def simple_maize(plant_area=10000,
 
     # compute the leaf surface
     leaf_area = numpy.array(
-        bell_shaped_dist(plant_area, phytomer, lad_rmax, lad_skew, a_max=a_max))
+        bell_shaped_dist(plant_area=plant_area, nb_phy=phytomer, rmax=rmax,
+                         skew=skew))
 
     # distances between leaves
     pseudostem = geometric_dist(pseudostem_height, nb_young_phy,
@@ -198,8 +179,8 @@ def simple_maize(plant_area=10000,
     stem = stem_dimension(internode=internode, d_internode=diameter, ntop=ntop)
     df = blades.merge(stem)
 
-    df['leaf_azimuth'] = leaf_azimuth(size=len(ranks), phyllotaxy=phyllotaxy, deviation=deviation,
-                                      first=plant_azimuth)
+    df['leaf_azimuth'] = leaf_azimuth(size=len(ranks), phyllotactic_angle=phyllotactic_angle, phyllotactic_deviation=phyllotactic_deviation,
+                                      plant_orientation=plant_orientation)
     df['leaf_rank'] = ranks
     df['leaf_shape'] = [leaves[n] for n in df.leaf_rank]
 

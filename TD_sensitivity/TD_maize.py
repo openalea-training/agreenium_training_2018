@@ -58,17 +58,12 @@ def maize(plant_area=7000,
                           delta_angle=delta)
     for rank, inc, delta in zip(ranks, incli, delta_angle)}
 
-    return simple_maize(plant_area=plant_area,
-                        plant_height=plant_height,
-                        lad_rmax=rmax,
-                        a_max=skew,
-                        wl=wl,
-                        plant_azimuth=plant_orientation,
-                        phyllotaxy=phyllotactic_angle,
-                        deviation=phyllotactic_deviation,
-                        leaves=leaves,
-                        seed=seed
-                        )
+    return simple_maize(plant_area=plant_area, plant_height=plant_height,
+                        rmax=rmax, leaves=leaves,
+                        phyllotactic_angle=phyllotactic_angle,
+                        phyllotactic_deviation=phyllotactic_deviation,
+                        plant_orientation=plant_orientation, wl=wl, skew=skew,
+                        seed=seed)
 
 def reader(data_file='rayostpierre2002.csv'):
     """ reader for mango meteo files """
