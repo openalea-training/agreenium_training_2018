@@ -2,7 +2,7 @@
 #-----------------------------TD SENSITIVITY ANALYSIS-----------------------------##
 #----------------------------------------------------------------------------------#
 # Application of the Morris method and metamodelling approach to extablish the sensitivity of 3D maize model on light interception outputs
-# Raphael PEREZ, Christian FOURNIER, March 2018 
+# Raphael PEREZ, Christian FOURNIER, Robert FAIVRE, Christophe PRADAL March 2018 
 
 #load package for sensitivity
 library(sensitivity)
@@ -77,20 +77,19 @@ set.seed(1)
 etude.morris=morris(model=NULL,factors=as.character(nFact),r=r,design=list(type='oat',levels=Q, grid.jump=step),scale=T,binf= binf,bsup=bsup)
 
 
-planMorris=etude.morris$X
-
 ###----save the design----####
-filename='planMorris'
-write.csv(x=planMorris,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
+# planMorris=etude.morris$X
+# filename='planMorris'
+# write.csv(x=planMorris,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
 
+###----import the design----####
+planMorris=read.table('planMorris.csv',sep=',',dec='.',header=T)
+etude.morris$X=planMorris
 
 ###----visualisation of parameter distribution----####
 'à compléter'
 
 ####--------------------------Estimate Morris indices------------------------####
-
-###----import inputs----####
-# planMorris=read.table('planMorris.csv',sep=',',dec='.',header=T)
 
 ###----import outputs----####
 #isolated
@@ -120,10 +119,9 @@ summary(outputMorris)
 
 var='Ei_leaf_isol'
 
-y=outputMorris[,var]
-
-out=tell(etude.morris,y= y)
+out=tell(etude.morris,y= outputMorris[,var])
 print(etude.morris)
+
 
 res=data.frame(t(out$ee))
 don_out=data.frame(parameter=parameters,mu=apply(X=res,MARGIN = 1,mean),mu_star=apply(X=abs(res),MARGIN = 1,mean),sd=apply(X=res,MARGIN = 1,sd))
@@ -163,14 +161,18 @@ RandomLHS=function(factors,distribParameters,size,preserveDraw=FALSE){
 
 
 ####----------------------------Design the plan-------------------------------####
-factors=parameters
-distribParameters=Pvar[,c('min','max')]
-size=9**4
-planLHS=RandomLHS(factors = factors,size=size,distribParameters = distribParameters,preserveDraw=FALSE)
+# factors=parameters
+# distribParameters=Pvar[,c('min','max')]
+# size=9**4
+# planLHS=RandomLHS(factors = factors,size=size,distribParameters = distribParameters,preserveDraw=FALSE)
+
 
 ###----save the design----####
-filename='planLHS'
-write.csv(x=planLHS,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
+# filename='planLHS'
+# write.csv(x=planLHS,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
+
+###----import the design----####
+planLHS=read.table('planLHS.csv',sep=',',dec='.',header=T)
 
 ###----visualisation of parameter distribution & sampling grid  ----####
 'à compléter'
