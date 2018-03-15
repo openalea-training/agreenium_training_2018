@@ -105,7 +105,10 @@ def light_response(irradiance, alpha=0.01, Pm=1, R=0):
 
 
 def irrad_opt(alpha=0.01, Pm=1):
-    return 0.7 * Pm / alpha / (1 - 0.7)
+    return Pm * 0.7 / alpha / (1 - 0.7)
+
+def pm_acclimated(irrad, alpha=0.01):
+    return irrad / (0.7 * alpha / (1 - 0.7))
 
 def net_photosynthesis(ei):
     pass

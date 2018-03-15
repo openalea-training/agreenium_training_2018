@@ -32,11 +32,11 @@ def random_orientation(size=1):
     return zip(azimuth, elevation, roll)
 
 
-def random_leaves(n_leaves=10, leaf_size=0.1, crown_radius=1, crown_center=(0, 0, 0), inner=True):
+def random_leaves(n_leaves=10, leaf_area=0.1, crown_radius=1, crown_center=(0, 0, 0), inner=True):
     """
 
     :param n_leaves:
-    :param leaf_size:
+    :param leaf_area:
     :param crown_radius:
     :param crown_center:
     :return:
@@ -46,14 +46,14 @@ def random_leaves(n_leaves=10, leaf_size=0.1, crown_radius=1, crown_center=(0, 0
     orientations = random_orientation(n_leaves)
     center = numpy.array(crown_center)
     pgl_pos = [pgl.Vector3(*(numpy.array(pos) + center)) for pos in positions]
-    leaf = pgl.Disc(leaf_size)
+    leaf = pgl.Disc(numpy.sqrt(leaf_area / 0.9 / numpy.pi))
     r_leaves = [pgl.EulerRotated(az, el, ro, leaf) for az, el, ro in orientations]
     return [pgl.Translated(pos, l) for pos,l in zip(pgl_pos, r_leaves)]
 
 
-def simple_tree(height=2, crown_radius=1, n_leaves=500,inner=True):
+def simple_tree(height=2, crown_radius=1, n_leaves=500, leaf_area = 0.1, inner=True):
     """return a simple tree scene"""
-    leaves = random_leaves(n_leaves=n_leaves, crown_radius=crown_radius, crown_center=(0,0,height), inner=inner)
+    leaves = random_leaves(n_leaves=n_leaves, leaf_area=leaf_area, crown_radius=crown_radius, crown_center=(0,0,height), inner=inner)
     trunk = pgl.Cylinder(0.1, height)
     green = pgl.Material(pgl.Color3(0,150,0))
     brown = pgl.Material(pgl.Color3(100,60,10))
@@ -63,8 +63,8 @@ def simple_tree(height=2, crown_radius=1, n_leaves=500,inner=True):
         scene.add(pgl.Shape(leaf, green))
     return scene
 
-def mtg_tree(height = 2, crown_radius = 1, n_leaves = 500, inner=True):
-    leaves = random_leaves(n_leaves=n_leaves, crown_radius=crown_radius,
+def mtg_tree(height = 2, crown_radius = 1, n_leaves = 500, leaf_area = 0.1, inner=True):
+    leaves = random_leaves(n_leaves=n_leaves, leaf_area = leaf_area, crown_radius=crown_radius,
                            crown_center=(0, 0, height), inner=inner)
     g = MTG()
     vid = g.add_component(g.root, label= 'plant', edge_type='/')
