@@ -81,7 +81,12 @@ Meristem(p):
       nproduce Meristem(p)
     else:
       # succession
-      produce Meristem(init_meristem(succession(p.gutype), p.init_date))
+      if p.gutype == Inflo:
+        nproduce [ &(15) Meristem(init_meristem(set_sylleptic(succession(p.gutype)), p.init_date)) ]
+        produce Flower(0)
+      else:
+        # succession
+        produce Meristem(init_meristem(succession(p.gutype), p.init_date))
           
   
 

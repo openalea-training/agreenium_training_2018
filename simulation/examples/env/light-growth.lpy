@@ -1,0 +1,383 @@
+from math import *
+from openalea.plantgl.all import *
+from light import directInterception, directionalInterception, totalInterception,azel2vect
+from sunDome import getDirectLight, getSkyTurtleSize, getSkyTurtleAt 
+import matplotlib.pyplot as plt
+
+
+SIMTIME = 80  # (80) Total nb of derivations in a simulation
+
+T = 0.5       # (0.5)Plastochron: time for an apex to produce a new organ in a.u. (e.g. 1 week)
+TI = 1.       # (1.0)time for internode growth up to maturity
+
+
+dt = 0.10      # (0.1) time lapse corresponding to a derivation
+eps = 0.001    # (0.001) time accuracy limit
+
+# Axis geometry
+phy = 45      # (45) phyllo angle (whorl = 360/nb_leaves/2, spiral = 137.5, 99.5, ...)
+whorlsize = 4 # (4)  whorl nb: 1 for spiral phyllotaxis
+insangle = 35 # (35) insertion angle of leaves (petiole)
+
+#### Plant geometry #### 
+
+# Internodes
+endiam = 0.05 # (0.05) in a.u (eg. 1 a.u = 0.1 m)
+ENLENMAX = 1. # (1.0) maximum size of an internode
+enlen = ENLENMAX * en_fraction/100. # (0.5) internode length is a percentage of a maximal internode length
+
+# Petioles
+petioleLength = 0.1 # (0.1)
+petioleDiam = 0.01  # (0.01)
+
+# Leaf parameters 
+opening_rate = 0.15 # (0.15) controls the rate of leaf additional bending with time
+max_added_bend = 50 # (50) in degrees: maximum angle added due to gravity influence and senescence to the leaf insertion angle
+
+# Leaf parameters (for sweep function only)
+lengthfactor = 2.     # (2.) in a.u. units 
+widthfactor = 3.      # (3.) in a.u. units 
+nb_seg = 10        # (10) nb of slices to build a leaf blade
+seglen = 1./nb_seg 
+
+#### Irradiance parameters #### 
+# Enum definition for selecting the type of scene enlightment
+# - FIXEDSUN: fixed sun (direction indicated by sunazel below)
+# - MOVINGSUN: sequence of sun positions during a specific day (jj)
+# - OVERCAST: overcast sky: light coming from all directions of the sky vault
+class LightModelType:   
+  FIXEDSUN = 0 
+  MOVINGSUN = 1 
+  OVERCAST = 2
+
+LightModel = 0
+
+#--- case of a fixed sun direction:
+# Direction of light, position of the sun
+sunazel = (0,60,1)  # (0,60,1) sun (azimuth, elevation, weight). The weight may be used if several orientations are considered during a day. The weights should sum at 1.0
+sundirection = azel2vect(sunazel[0],sunazel[1]) # only azimuth and elevation are considered here
+sunposition = sundirection * -10 # (-7) place the sun in the scene.
+
+#--- case of a series of sun directions:
+latitude = 43.36 # (43.36) Montpellier
+longitude = 3.52 # (3.52) Montpellier
+julianDay = 222  # (222)
+
+# Range of light value (used for interpolation of colors in leaf)
+minlight, maxlight = 1e5, 0
+
+#### Carbon conversion #### 
+carbonToShapeCoeff = 0.5   # (0.5) coefficient to convert carbon stored in a leaf to leaf size
+
+def lightcolor(light):
+  if maxlight == 0 : return 2
+  minlight = 0
+  return 10 + int(10*(light-minlight)/(maxlight-minlight))
+
+#### Useful miscelaneous functions ####
+
+def getlastvalue(list1):
+  if len(list1) == 0: return 0.0
+  else: return list1[-1] 
+
+# A leaf's state contain 5 parameters:
+# - t0: its birth date
+# - lifetime: its current lifetime since birth date
+# - cumcarbon: a list of floats containing the total amount of carbon photosynthesized by t 
+# - light: a list of floats containing the amounts of light received at each time step since the birth of the leaf.
+# - carbon: a list of floats containing the instantaneous amount of carbon photosynthesized by the leaf at each dt
+
+module Leaf(t0,lifetime,cumcarbon,light, carbon), LightSource
+
+Axiom: Soil LightSource _(endiam) A(0,T)
+
+derivation length: SIMTIME
+production:
+
+# An apex contains two state parameters:
+# - t is the absolute time ellapsed since the beginning of the simulation
+# - cpt is the plastochrone countdown (in dt steps). It is reset at T after each organ generation
+A(t,cpt):
+  if cpt < eps : 
+    nproduce I(0.001)
+    nproduce /(phy) 
+    whorlangle = 360 / whorlsize
+    for i in xrange(whorlsize):
+      nproduce [ /(whorlangle*i) ^(insangle) Petiole(t) Leaf(t,0,[0.1],[0.],[0.0]) ]
+    nproduce A(t+dt,T)
+  else: produce A(t+dt,cpt-dt)
+
+I(t):
+  nproduce I(t+dt)
+
+# This rule evaluates the leaf photosynthesis rate  
+# at each step via a user-defined LUE function: delta_carbon/dt = LUE(light)
+# This function can be defined either as a python function 
+# or as a LPy-function with the name LUE (in a control panel)
+Leaf(t0,t,cumcarbon,light,carbon) : 
+  currlight = getlastvalue(light)
+  currcarbon = getlastvalue(cumcarbon)
+  
+  delta_c = LUE(min(1,currlight)) * dt  # photosynthesis during dt
+  
+  cumcarbon.append(currcarbon+delta_c)  # photosynthesis cumulated by the leaf
+  carbon.append(delta_c)                # instantaneous photosynthesis on the leaf
+
+  produce Leaf(t0,t+dt,cumcarbon,light,carbon)
+
+Petiole(t): 
+  produce Petiole(t+dt)
+
+
+interpretation:
+
+# Grow an internode as a function of time in both diameter and length
+# the growth is limited in time: mature geometry is acheived in time TI
+I(t):
+  if t <= TI: produce _(endiam*t/TI)F(0.001+enlen*t/TI)
+  else: produce _(endiam)F(enlen)
+
+Petiole(t):
+  produce _(petioleDiam)F(petioleLength)
+
+# The size of a leaf is proportional to its amount of carbon
+#Leaf(t0,t,cumcarbon,light,carbon) : 
+#  currlight = getlastvalue(light)
+#  currcarbon = getlastvalue(cumcarbon)
+#  size = carbonToShapeCoeff*currcarbon 
+#  
+#
+
+Leaf(t0,t,cumcarbon,light,carbon):
+  currlight = getlastvalue(light)
+  currcarbon = getlastvalue(cumcarbon)
+  size = carbonToShapeCoeff*currcarbon
+
+  nproduce ^(max_added_bend*min(1.0,t*opening_rate)) ;(lightcolor(currlight)) 
+  # different types of leaves (uncomment one of the following):
+  # Nurbs patch:
+  nproduce @g(leafshape, size)  
+  # Or sweep function:
+  # Sweep(nerve,section,lengthfactor*size,seglen,widthfactor*size,width)
+
+Soil:
+  nproduce [,(2) @g(Box(1,1,0.01)) ]
+
+# Do not draw to big a light source as it may interact with the lightening of the scene :-)
+LightSource : 
+  if LightModel == LightModelType.FIXEDSUN:
+    nproduce [ ,(1) @R @M(sunposition[0],sunposition[1],sunposition[2]) ,(4) @O(0.1) ]
+  elif LightModel == LightModelType.MOVINGSUN:
+    sunPos = getDirectLight(latitude, longitude, julianDay, 6, 22)
+    for i in range(len(sunPos)):
+      #print sunPos[i][0],sunPos[i][1], sunPos[i][2]
+      sundir = azel2vect(sunPos[i][0],sunPos[i][1])
+      sunpos = sundir * -7
+      nproduce [ ,(1) @R @M(sunpos[0],sunpos[1],sunpos[2]) ,(4) @O(0.1) ]
+  elif LightModel == LightModelType.OVERCAST:
+    # First draw the sky turtle positions 
+    sunPos = []
+    for i in xrange(getSkyTurtleSize()):
+      sunPos.append( getSkyTurtleAt(i))
+    for i in range(len(sunPos)):
+      #print sunPos[i][0],sunPos[i][1], sunPos[i][2]
+      sundir = azel2vect(sunPos[i][0],sunPos[i][1])
+      sunpos = sundir * -7
+      nproduce [ ,(1) @R @M(sunpos[0],sunpos[1],sunpos[2]) ,(4) @O(0.05) ]
+    # The trajectory of the sun is added
+    sunPos2 = getDirectLight(latitude, longitude, julianDay, 6, 22)
+    for i in range(len(sunPos2)):
+      #print sunPos[i][0],sunPos[i][1], sunPos[i][2]
+      sundir2 = azel2vect(sunPos2[i][0],sunPos2[i][1])
+      sunpos2 = sundir2 * -7
+      nproduce [ ,(1) @R @M(sunpos2[0],sunpos2[1],sunpos2[2]) ,(4) @O(0.1) ]
+
+endlsystem
+
+def StartEach(lstring):
+  frameDisplay(True)
+
+# After each growth step (i.e. a derivation and an interpretation step)
+# a function is called that determines the light received by each leaf.
+# This function can be either:
+# - directionalInterception(lscene,[sunazel]) for a fixed sun direction
+# - directInterception(lscene, lat, long, jj) for the trajectory of the sun 
+#   during a given day
+# - totalInterception(lscene, lat, long, jj)  for light coming from the 
+#   sky vault (diffuse light)
+# In the last two cases, the light is summed-up over all the considered directions 
+def EndEach(lstring,lscene):
+  global minlight, maxlight
+  minlight, maxlight = 1e5, 0
+
+  # computation of light received by leaves (depending on light model)
+  if LightModel == LightModelType.FIXEDSUN:
+    # directionalInterception(): fractalysis function that computes the light 
+    # received the lscene components from one direction only
+    res = directionalInterception(lscene,[sunazel]) 
+  elif LightModel == LightModelType.MOVINGSUN:
+    # directInterception(): function that integrates the sunlight over one day (jj)
+    # directInterception(scene, lat, long, start=7, stop=19, stp=30, dsun = 1, dGMT = 0)
+    # Sum-up light coming from the sun trajectory during a day at a given 
+    # latitude and longitude 
+    res = directInterception(lscene, latitude, longitude, julianDay)
+  elif LightModel == LightModelType.OVERCAST:
+    # totalInterception(): function that integrates the sunlight over one day (jj) 
+    # over the whole sky vault
+    # totalInterception(scene, lat, long, start=7, stop=19, stp=30, dsun = 1, dGMT = 0)
+    # Sum-up light coming from the whole sky vault during a day at a given 
+    # latitude and longitude 
+    res = totalInterception(lscene, latitude, longitude, julianDay)
+
+  for k,v in res.items():
+    if lstring[k].name == 'Leaf':
+      lstring[k].light.append(v)
+      if v < minlight : minlight = v
+      if v > maxlight : maxlight = v  
+  
+  return lstring
+
+def End(lstring, lscene):
+  # plot cumulated photosynthesis
+  plt.figure(1)
+  plt.clf()
+  t0lists = []
+  for k in xrange(len(lstring)):
+    if lstring[k].name == 'Leaf':
+      t0 = lstring[k].t0
+      lifetime = lstring[k].lifetime
+      x = []
+      y = []
+      lifetimetics = int(lifetime / dt)
+      t0tics = int(t0 / dt)
+      for t in xrange(lifetimetics):
+        #print "k, t0, lifetime", k, t0tics, lifetimetics #, t0, lifetime
+        x.append(t0tics+t)
+        #print lstring[k].carbon
+        #print k,t
+        y.append(lstring[k].cumcarbon[t])
+      plt.plot(x,y)
+  plt.ylim([0,5])
+  plt.xlabel('Simulation steps')
+  plt.ylabel('Cumulated carbon per leaf')
+  plt.title('Cumulated photosynthesis per leaf')
+  plt.grid()
+  plt.show()
+  plt.draw()
+
+  # Total photosynthesis cumulated by the plant:
+  totalphot = 0
+  for k in xrange(len(lstring)):
+    if lstring[k].name == 'Leaf':
+      totalphot += lstring[k].cumcarbon[-1]
+  print "Total Photosynthesis during simulation by all leaves: ", totalphot
+
+  # plot instantaneous photosynthesis
+  plt.figure(2)
+  plt.clf()
+  t0lists = []
+  for k in xrange(len(lstring)):
+    if lstring[k].name == 'Leaf':
+      t0 = lstring[k].t0
+      lifetime = lstring[k].lifetime
+      x = []
+      y = []
+      lifetimetics = int(lifetime / dt)
+      t0tics = int(t0 / dt)
+      for t in xrange(lifetimetics):
+        #print "k, t0, lifetime", k, t0tics, lifetimetics #, t0, lifetime
+        x.append(t0tics+t)
+        #print lstring[k].carbon
+        #print k,t
+        y.append(lstring[k].carbon[t])
+      plt.plot(x,y)
+  plt.ylim([0,0.2])
+  plt.xlabel('Simulation steps')
+  plt.ylabel('Instantaneous carbon per leaf')
+  plt.title('Instantaneous photosynthesis per leaf')
+  plt.grid()
+  plt.show()
+  plt.draw()
+  
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_10 = pgl.Material("Color_10" , ambient = (0,0,57) , diffuse = 4.40351 , )
+	Color_10.name = "Color_10"
+	context.turtle.setMaterial(10,Color_10)
+	Color_11 = pgl.Material("Color_11" , ambient = (6,0,51) , diffuse = 4.26316 , )
+	Color_11.name = "Color_11"
+	context.turtle.setMaterial(11,Color_11)
+	Color_12 = pgl.Material("Color_12" , ambient = (12,0,45) , diffuse = 4.12281 , )
+	Color_12.name = "Color_12"
+	context.turtle.setMaterial(12,Color_12)
+	Color_13 = pgl.Material("Color_13" , ambient = (18,0,39) , diffuse = 3.98246 , )
+	Color_13.name = "Color_13"
+	context.turtle.setMaterial(13,Color_13)
+	Color_14 = pgl.Material("Color_14" , ambient = (24,0,34) , diffuse = 3.84211 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	Color_15 = pgl.Material("Color_15" , ambient = (30,0,28) , diffuse = 3.70175 , )
+	Color_15.name = "Color_15"
+	context.turtle.setMaterial(15,Color_15)
+	Color_16 = pgl.Material("Color_16" , ambient = (36,0,22) , diffuse = 3.5614 , )
+	Color_16.name = "Color_16"
+	context.turtle.setMaterial(16,Color_16)
+	Color_17 = pgl.Material("Color_17" , ambient = (42,0,17) , diffuse = 3.42105 , )
+	Color_17.name = "Color_17"
+	context.turtle.setMaterial(17,Color_17)
+	Color_18 = pgl.Material("Color_18" , ambient = (47,0,11) , diffuse = 3.2807 , )
+	Color_18.name = "Color_18"
+	context.turtle.setMaterial(18,Color_18)
+	Color_19 = pgl.Material("Color_19" , ambient = (53,0,5) , diffuse = 3.14035 , )
+	Color_19.name = "Color_19"
+	context.turtle.setMaterial(19,Color_19)
+	Color_20 = pgl.Material("Color_20" , ambient = (60,0,0) , diffuse = 3 , )
+	Color_20.name = "Color_20"
+	context.turtle.setMaterial(20,Color_20)
+	context.options.setSelection('Warning with sharp module',0)
+	scalars = [('elevation', 'Integer', 50, 0, 90), ('en_fraction', 'Integer', 50, 0, 100)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	LUE = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.281283, 1),(0.175012, 0.66759, 1),(0.385188, 0.964064, 1),(0.652286, 0.93888, 1),(1, 0.950816, 1)]) , 
+	    )
+	LUE.name = "LUE"
+	import openalea.plantgl.all as pgl
+	leafshape = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0.00934393, -0.0549682, 0.00159756, 1), (0.000785378, -0.0342865, 0.00715827, 1), (-0.00984266, -0.0109794, 0.00955924, 1), (0.000982976, -0.00830777, 0.00660347, 1)], [(-3.49722e-17, -0.33909, 0.346969, 1), (0.109432, -0.114828, 0.381921, 1), (0.144924, 0.0976978, 0.372525, 1), (0.0291052, 0.257566, 0.325465, 1)], [(-0.00959817, -0.434022, 0.726349, 1), (0.11219, -0.124491, 0.724973, 1), (0.147002, 0.115626, 0.682831, 1), (0.0567277, 0.412544, 0.597588, 1)], [(0.00430836, -0.234866, 1.05236, 1), (0.0274469, -0.0797845, 1.26865, 1), (0.0359869, 0.0634305, 1.42421, 1), (0.0520624, 0.31143, 1.0649, 1)]]) , 
+	    )
+	leafshape.name = "leafshape"
+	import openalea.plantgl.all as pgl
+	nerve = pgl.BezierCurve2D(	
+	    pgl.Point3Array([(-0.5, 0, 1),(-0.166667, 0, 1),(0.166667, 0, 1),(0.5, -0.313636, 1)]) , 
+	    )
+	nerve.name = "nerve"
+	width = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0, 1),(0.335622, 0.714318, 1),(0.666667, 0, 1),(1, 0, 1)]) , 
+	    )
+	width.name = "width"
+	section = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.5, 0, 1),(-0.166667, -0.140909, 1),(0.171212, -0.136364, 1),(0.5, 0, 1)]) , 
+	    )
+	section.name = "section"
+	panel_0 = ({'active': True, 'visible': True, 'name': 'Panel'},[('Function',LUE),('NurbsPatch',leafshape),('Curve2D',nerve),('Function',width),('Curve2D',section)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('LUE',LUE),('width',width),]
+	context["__curves__"] = [('nerve',nerve),('section',section),]
+	context["__parameterset__"] = parameterset
+	context["LUE"] = pgl.QuantisedFunction(LUE)
+	context["leafshape"] = leafshape
+	context["nerve"] = nerve
+	context["width"] = pgl.QuantisedFunction(width)
+	context["section"] = section
+__copyright__ = 'open-source GPL'
+__description__ = 'Authors:\nC. Godin\nF. Boudon\n\n(c) Inria VirtualPlants team joitn with CIRAD and INRA\n\nSimulation of direct light interception and associated photosynthesis during growth\n\nMini-projects:\n\n- Analyse the impact of the latitude on the photosynthesis\n- Analyse the impact of the plant architecture on the photosynthesis (petiole length, internode length, opening rate of leaves, leaf shape, phyllotaxis, ...)\n- Analyze the influence of the plant architecture model on the performance of the plant \n- Analyze the influence of the photosynthetic function (LUE) shade/light plants on the \n- Analyse the impact of the sun position on the growth\n- Analyse the difference between overcast sky and clear sky\n'
+__institutes__ = 'INRIA - CIRAD Virtual Plants'
+__authors__ = 'C. Godin, F. Boudon'
