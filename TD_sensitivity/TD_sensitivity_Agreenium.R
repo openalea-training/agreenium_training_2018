@@ -14,6 +14,7 @@ library(lhs)
 require(ggplot2)
 require(ggrepel)
 
+require(MASS)
 ###directory
 Directory="/home/perez/agreenium_training_2018/TD_sensitivity/"
 setwd(Directory)
@@ -71,20 +72,16 @@ step=2
 ###----create Morris trajectories----####
 
 #set random seed
+RNGkind(kind="L'Ecuyer-CMRG")
 set.seed(1) 
 
 #plan
 etude.morris=morris(model=NULL,factors=as.character(nFact),r=r,design=list(type='oat',levels=Q, grid.jump=step),scale=T,binf= binf,bsup=bsup)
 
-
 ###----save the design----####
-# planMorris=etude.morris$X
-# filename='planMorris'
-# write.csv(x=planMorris,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
-
-###----import the design----####
-planMorris=read.table('planMorris.csv',sep=',',dec='.',header=T)
-etude.morris$X=planMorris
+planMorris=etude.morris$X
+filename='planMorris'
+write.csv(x=planMorris,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
 
 ###----visualisation of parameter distribution----####
 'à compléter'
@@ -161,22 +158,18 @@ RandomLHS=function(factors,distribParameters,size,preserveDraw=FALSE){
 
 
 ####----------------------------Design the plan-------------------------------####
-# factors=parameters
-# distribParameters=Pvar[,c('min','max')]
-# size=9**4
-# planLHS=RandomLHS(factors = factors,size=size,distribParameters = distribParameters,preserveDraw=FALSE)
+factors=parameters
+distribParameters=Pvar[,c('min','max')]
+size=9**4
+planLHS=RandomLHS(factors = factors,size=size,distribParameters = distribParameters,preserveDraw=FALSE)
 
 
 ###----save the design----####
-# filename='planLHS'
-# write.csv(x=planLHS,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
-
-###----import the design----####
-planLHS=read.table('planLHS.csv',sep=',',dec='.',header=T)
+filename='planLHS'
+write.csv(x=planLHS,file =paste(Directory,filename,'.csv',sep=''),row.names = F)
 
 ###----visualisation of parameter distribution & sampling grid  ----####
 'à compléter'
-
 
 
 ####-------------------Polynomila model and variance decomposition------------------####
@@ -211,6 +204,8 @@ colnames(dataMM)[ncol(dataMM)]=var
 
 #complete model
 MM_poly_total=lm(formula=dataMM[,var]~polym(plant_height,rmax,skew,wl,incli_top,delta_angle_top,plant_orientation,phyllotactic_angle,phyllotactic_deviation,degree=3),data=dataMM)
+
+# stepAIC(object =MM_poly_total$model,direction=backward)
 
 summary(lm(formula=dataMM[,var]~predict(MM_poly_total)))
 r2_total=summary(MM_poly_total)$adj.r.squared
