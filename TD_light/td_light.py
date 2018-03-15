@@ -110,8 +110,14 @@ def irrad_opt(alpha=0.01, Pm=1):
 def pm_acclimated(irrad, alpha=0.01):
     return irrad / (0.7 * alpha / (1 - 0.7))
 
-def net_photosynthesis(ei):
-    pass
+def plant_biomass(g, duration = 12, sky=None, df=None, ghi=1, Pm=1):
+    if df is None:
+        cs, raw, agg = illuminate(g, sky=sky)
+        df = pandas.Dataframe(agg)
+    ei = ghi * df.Ei
+    p = light_response(ei, Pm=Pm)
+    return (df.area * p * duration).sum()
+
 
 
 def polar_grid(zenith=20, azimuth=80):
