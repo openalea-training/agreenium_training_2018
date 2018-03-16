@@ -2,7 +2,7 @@
 #-----------------------------TD SENSITIVITY ANALYSIS-----------------------------##
 #----------------------------------------------------------------------------------#
 # Application of the Morris method and metamodelling approach to extablish the sensitivity of 3D maize model on light interception outputs
-# Raphael PEREZ, Christian FOURNIER, Robert FAIVRE, Christophe PRADAL March 2018 
+# Raphael PEREZ, Christian FOURNIER, Robert FAIVRE, Christophe PRADAL March 2018
 
 #load package for sensitivity
 library(sensitivity)
@@ -14,7 +14,6 @@ library(lhs)
 require(ggplot2)
 require(ggrepel)
 
-require(MASS)
 ###directory
 Directory="/home/perez/agreenium_training_2018/TD_sensitivity/"
 setwd(Directory)
@@ -33,21 +32,21 @@ rownames(Pvar)=parameters
 
 ###----fix  min and max paramater values----####
 #plant height (cm)
-Pvar['plant_height',c('min','max')]=c(50,300) 
+Pvar['plant_height',c('min','max')]=c(50,300)
 #relative position of the leaf with highest area
-Pvar['rmax',c('min','max')]=c(0.1,0.9) 
-#skewness of leaf area distribution 
+Pvar['rmax',c('min','max')]=c(0.1,0.9)
+#skewness of leaf area distribution
 Pvar['skew',c('min','max')]=c(0.05,1)
 #ratio width/length of leaf
-Pvar['wl',c('min','max')]=c(0.01,0.5)  
+Pvar['wl',c('min','max')]=c(0.01,0.5)
 #insertion inclination of the lowest leaf on the stem (degree)
-Pvar['incli_top',c('min','max')]=c(0,75) 
+Pvar['incli_top',c('min','max')]=c(0,75)
 #difference angle between insertion and leaf tip (degree)
-Pvar['delta_angle_top',c('min','max')]=c(0,250) 
+Pvar['delta_angle_top',c('min','max')]=c(0,250)
 #plant orientation in azimtuh (degree) (0°= inter-row)
-Pvar['plant_orientation',c('min','max')]=c(0,90) 
+Pvar['plant_orientation',c('min','max')]=c(0,90)
 #difference angle between two vertical rows of leaves on the stem (degree) (0° = superposed, 180° = oposed)
-Pvar['phyllotactic_angle',c('min','max')]=c(0,180) 
+Pvar['phyllotactic_angle',c('min','max')]=c(0,180)
 #leaf azimuth deviation from phyllotactic_angle (degree)
 Pvar['phyllotactic_deviation',c('min','max')]=c(0,90)
 
@@ -62,7 +61,7 @@ nFact= parameters
 r=30
 #inf limit
 binf=Pvar[,'min']; names(binf)=parameters
-#sup limit 
+#sup limit
 bsup=Pvar[,'max'];names(bsup)=parameters
 #discretisation levels
 Q=5
@@ -73,7 +72,7 @@ step=2
 
 #set random seed
 RNGkind(kind="L'Ecuyer-CMRG")
-set.seed(1) 
+set.seed(1)
 
 #plan
 etude.morris=morris(model=NULL,factors=as.character(nFact),r=r,design=list(type='oat',levels=Q, grid.jump=step),scale=T,binf= binf,bsup=bsup)
@@ -138,7 +137,7 @@ graph=ggplot(data=don_out,aes(x=mu_star,y=sd,label=parameter))+
 print(graph)
 
 
-  
+
 ####______________________________________________________________________________####
 ####----------------------------------METAMODEL-----------------------------------####
 ####______________________________________________________________________________####
@@ -205,8 +204,6 @@ colnames(dataMM)[ncol(dataMM)]=var
 #complete model
 MM_poly_total=lm(formula=dataMM[,var]~polym(plant_height,rmax,skew,wl,incli_top,delta_angle_top,plant_orientation,phyllotactic_angle,phyllotactic_deviation,degree=3),data=dataMM)
 
-# stepAIC(object =MM_poly_total$model,direction=backward)
-
 summary(lm(formula=dataMM[,var]~predict(MM_poly_total)))
 r2_total=summary(MM_poly_total)$adj.r.squared
 print(paste(var,'  r2=',r2_total))
@@ -216,19 +213,19 @@ tableMM=NULL
 V=dataMM[,1:(ncol(dataMM)-1)]
 for (i in 1:ncol(V)){
   v=paste(colnames(V)[i])
-  
+
   model_seul=lm(formula=dataMM[,var]~polym(V[,i],degree=3),data=dataMM)
   r2_seul=summary(model_seul)$adj.r.squared
-  
+
   vecteur=data.frame(r=c(1:9),c=c(1:9))
-  w=which(vecteur$c!=i)  
-  
+  w=which(vecteur$c!=i)
+
   model_sauf=lm(formula=dataMM[,var]~polym(V[,w[1]],V[,w[2]],V[,w[3]],V[,w[4]],V[,w[5]],V[,w[6]],V[,w[7]],V[,w[8]],degree=3),data=dataMM)
   r2_sauf=summary(model_sauf)$adj.r.squared
-  
+
   r2_spe=r2_total-r2_sauf
   r2_int=r2_spe-r2_seul
-  
+
   tableMM_sub=data.frame(Alone=r2_seul,Specific=r2_spe,Total=r2_spe+abs(r2_int), Interaction=r2_int,row.names=v)
   tableMM=rbind(tableMM,tableMM_sub)
 }
@@ -249,12 +246,12 @@ abline(a=0,b=1,col=2)
 
 data_bar=data.frame(r2=c(tableMM[,'Specific'],tableMM[,'Interaction']),Effect=c(rep('Specific',nrow(tableMM)),rep('Interaction',nrow(tableMM))),Parameter=rep(rownames(tableMM),2))
 
-graphDecomp=ggplot() + 
+graphDecomp=ggplot() +
   geom_hline(yintercept=r2_total,lty=2)+
   geom_bar(data=data_bar, aes(fill=Effect,y=r2, x=Parameter), stat="identity",col=1,lwd=0.1)+
   ylab('')+
   ylim(0,1)+
-  theme_classic()+  
+  theme_classic()+
   theme(legend.position=c(0.8,0.8))+
   coord_flip()+
   ggtitle(var)
